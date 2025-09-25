@@ -1,0 +1,131 @@
+@font-face {
+  font-family: "NHaasGrotesk";
+  src: url(NHaasGrotesk.otf);
+}
+
+@font-face {
+  font-family: "NHaasGroteskBold";
+  src: url(NHaasGroteskBold.otf);
+}
+
+body {
+  font-family: "NHaasGrotesk";
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  height: 88vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bodyTop {
+  width: 1100px;
+  margin-left: 15%;
+  position: relative;
+}
+
+.buttons {
+  position: absolute;
+  z-index: 100;
+  bottom: -50px;
+  /* right: 0; */
+}
+
+#listSelect {
+  padding: 8px 5px;
+  font-size: 16px;
+  border-radius: 0;
+  border: 2px solid black;
+}
+
+.listSel:focus-visible {
+  border: 2px dashed crimson;
+  border-radius: 3px;
+  outline: none;
+}
+
+button {
+  /* margin: 5px 10px 20px 0; */
+  padding: 8px 16px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 0;
+  background-color: white;
+  border: 2px solid black;
+}
+
+
+.liTop {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Standard Box */
+.list-column {
+  flex: 1;
+  /* border: 1px solid #ccc; */
+  height: 377px;
+  overflow-y: hidden;
+  position: relative;
+  font-size: 42px;
+
+}
+
+/* .list-column li:hover {
+  color: #646464;
+} */
+
+/* Liste und Zeilen standardmäßig */
+.list-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list-column li {
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+/* Highlight */
+.highlight {
+  /* font-family: "NHaasGroteskBold";
+  font-size: 48px;
+  color: black; */
+}
+
+/* ===== Separate Styles für spätere Anpassung ===== */
+/* 7 Spalten Ansicht */
+.seven-columns .list-column {
+  margin-bottom: 10px;
+  height: 100px;
+
+}
+
+.seven-columns li {
+  /* eigene Zeilen Styles */
+  /* color: black; */
+}
+
+.seven-columns .highlight {
+  font-size: 35px;
+
+}
+
+/* Kombinierte Ansicht */
+.combined .list-column {
+  /* z.B. andere Box Farbe */
+  /* border-color: green; */
+}
+
+.combined li {
+  /* andere Zeilenfarbe */
+  /* color: darkgreen; */
+}
+
+.combined .highlight {
+  /* andere Highlight Farbe */
+  /* background-color: lightgreen; */
+}

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Random List Highlighter - Separate CSS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="bodyTop">
+  <div class="liTop">
+    <div class="buttons">
+      <select id="listSelect">
+        <option value="all">Alle</option>
+        <option value="0">1000 Default</option>
+        <option value="1">1000 Short</option>
+        <option value="2">1000 Special</option>
+        <option value="3">200 Long 1</option>
+        <option value="4">200 Long 2</option>
+        <option value="5">1000 Long 3</option>
+        <option value="6">mine</option>
+      </select>
+      <span id="toggleView"></span>
+      <button id="shuffleLists">Shuffle</button>
+    </div>
+    <div class="lists-container" id="lists"></div>
+  </div>
+</div>
+
+
+<script>
+const listPaths = [
+  'lists/1000 phrases_1.txt',
+  'lists/1000 phrases_2.txt',
+  'lists/1000 phrases_3.txt',
+  'lists/200 phrases_4LONG.txt',
+  'lists/200 phrases_5LONG.txt',
+  'lists/1000 phrases_6LONG.txt',
+  'lists/mine.txt'
+];
+
+let combinedMode = true; // standardmäßig "solo/combined"
+let allListsData = [];   // alle geladenen Listen
+let selectedList = "all"; // Dropdown-Wahl
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function renderLists() {
+  const container = document.getElementById('lists');
+  container.innerHTML = '';
+
+  container.className = combinedMode ? 'lists-container combined' : 'lists-container seven-columns';
+
+  if (!combinedMode) {
+    // ===== 7 Spalten Ansicht =====
+    allListsData.forEach(lines => {
+      const shuffled = shuffle([...lines]);
+      const highlightIndex = Math.floor(Math.random() * shuffled.length);
+
+      const columnDiv = document.createElement('div');
+      columnDiv.className = 'list-column';
+      const ul = document.createElement('ul');
+
+      shuffled.forEach((line, index) => {
+        const li = document.createElement('li');
+        li.textContent = line;
+        if (index === highlightIndex) li.classList.add('highlight');
+        li.addEventListener('click', () => {
+          const query = encodeURIComponent(line);
+          window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
+        });
+        ul.appendChild(li);
+      });
+
+      columnDiv.appendChild(ul);
+      container.appendChild(columnDiv);
+
+      // scroll highlight zentrieren
+      const highlightEl = ul.children[highlightIndex];
+      const containerHeight = columnDiv.clientHeight;
+      const highlightOffset = highlightEl.offsetTop + highlightEl.offsetHeight / 2;
+      columnDiv.scrollTop = highlightOffset - containerHeight / 2;
+    });
+  } else {
+    // ===== Solo Spalte Ansicht =====
+    let linesToShow = [];
+
+    if (selectedList === "all") {
+      // alle kombiniert
+      allListsData.forEach(lines => linesToShow = linesToShow.concat(lines));
+    } else {
+      // nur eine Liste
+      linesToShow = [...allListsData[parseInt(selectedList)]];
+    }
+
+    const shuffled = shuffle(linesToShow);
+    const highlightIndex = Math.floor(Math.random() * shuffled.length);
+
+    const columnDiv = document.createElement('div');
+    columnDiv.className = 'list-column';
+    const ul = document.createElement('ul');
+
+    shuffled.forEach((line, index) => {
+      const li = document.createElement('li');
+      li.textContent = line;
+      if (index === highlightIndex) li.classList.add('highlight');
+      li.addEventListener('click', () => {
+        const query = encodeURIComponent(line);
+        window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
+      });
+      ul.appendChild(li);
+    });
+
+    columnDiv.appendChild(ul);
+    container.appendChild(columnDiv);
+
+    // scroll highlight zentrieren
+    const highlightEl = ul.children[highlightIndex];
+    const containerHeight = columnDiv.clientHeight;
+    const highlightOffset = highlightEl.offsetTop + highlightEl.offsetHeight / 2;
+    columnDiv.scrollTop = highlightOffset - containerHeight / 2;
+  }
+}
+
+async function loadLists() {
+  allListsData = [];
+  for (let path of listPaths) {
+    const response = await fetch(path);
+    const text = await response.text();
+    const lines = text
+      .split('\n')
+      .filter(line => line.trim() !== '')
+      .map(line => line.replace(/^\d+\.\s*/, '')); // Nummern entfernen
+    allListsData.push(lines);
+  }
+  renderLists();
+}
+
+// Event Listener
+document.getElementById('toggleView').addEventListener('click', () => {
+  combinedMode = !combinedMode;
+  renderLists();
+});
+
+document.getElementById('shuffleLists').addEventListener('click', () => {
+  renderLists();
+});
+
+document.getElementById('listSelect').addEventListener('change', e => {
+  selectedList = e.target.value;
+  renderLists();
+});
+
+// Initial laden
+loadLists();
+</script>
+
+
+</body>
+
+</html>
