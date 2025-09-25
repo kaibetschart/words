@@ -3,165 +3,255 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>Random List Highlighter - Separate CSS</title>
+  <title>Looking for?</title>
   <link rel="stylesheet" href="style.css">
+  <link id="favicon" rel="icon" href="pictures/1.jpg">
 </head>
 
 <body>
-
-<div class="bodyTop">
-  <div class="liTop">
-    <div class="buttons">
-      <select id="listSelect">
-        <option value="all">Alle</option>
-        <option value="0">1000 Default</option>
-        <option value="1">1000 Short</option>
-        <option value="2">1000 Special</option>
-        <option value="3">200 Long 1</option>
-        <option value="4">200 Long 2</option>
-        <option value="5">1000 Long 3</option>
-        <option value="6">mine</option>
-      </select>
-      <span id="toggleView"></span>
-      <button id="shuffleLists">Shuffle</button>
+  <div class="bodyTop">
+    <div id="pictureContainer" class="pictures">
+      <img id="shuffledImage" src="" alt="Random Image" style="max-width:100%; max-height:600px;">
     </div>
-    <div class="lists-container" id="lists"></div>
+    <div class="listSize">
+      <div class="liTop">
+        <div class="buttons">
+          <select id="listSelect" class="listSel">
+            <option value="all">Alle</option>
+            <option value="0">1000 Default</option>
+            <option value="1">1000 Short</option>
+            <option value="2">1000 Special</option>
+            <option value="3">200 Long 1</option>
+            <option value="4">200 Long 2</option>
+            <option value="5">1000 Long 3</option>
+            <option value="6">mine</option>
+          </select>
+          <span id="toggleView"></span>
+          <button id="shuffleLists">Shuffle</button>
+          <button id="undoButton">Ctrl + Z</button>
+        </div>
+        <div class="lists-container" id="lists"></div>
+
+      </div>
+    </div>
   </div>
-</div>
 
 
-<script>
-const listPaths = [
-  'lists/1000 phrases_1.txt',
-  'lists/1000 phrases_2.txt',
-  'lists/1000 phrases_3.txt',
-  'lists/200 phrases_4LONG.txt',
-  'lists/200 phrases_5LONG.txt',
-  'lists/1000 phrases_6LONG.txt',
-  'lists/mine.txt'
-];
+  <script>
+    // ==================== Variablen ====================
+    const listPaths = [
+      'lists/1000 phrases_1.txt',
+      'lists/1000 phrases_2.txt',
+      'lists/1000 phrases_3.txt',
+      'lists/200 phrases_4LONG.txt',
+      'lists/200 phrases_5LONG.txt',
+      'lists/1000 phrases_6LONG.txt',
+      'lists/mine.txt'
+    ];
 
-let combinedMode = true; // standardmäßig "solo/combined"
-let allListsData = [];   // alle geladenen Listen
-let selectedList = "all"; // Dropdown-Wahl
+    let combinedMode = true;        // Solo-Spalte = true, 7-Spalten = false
+    let allListsData = [];          // Alle geladenen Listen
+    let selectedList = "all";       // Dropdown-Wahl
+    const pictureFolder = 'pictures/';
+    let pictureFiles = [];          // Aus images.json geladen
+    let history = [];               // Stack für Undo
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-function renderLists() {
-  const container = document.getElementById('lists');
-  container.innerHTML = '';
-
-  container.className = combinedMode ? 'lists-container combined' : 'lists-container seven-columns';
-
-  if (!combinedMode) {
-    // ===== 7 Spalten Ansicht =====
-    allListsData.forEach(lines => {
-      const shuffled = shuffle([...lines]);
-      const highlightIndex = Math.floor(Math.random() * shuffled.length);
-
-      const columnDiv = document.createElement('div');
-      columnDiv.className = 'list-column';
-      const ul = document.createElement('ul');
-
-      shuffled.forEach((line, index) => {
-        const li = document.createElement('li');
-        li.textContent = line;
-        if (index === highlightIndex) li.classList.add('highlight');
-        li.addEventListener('click', () => {
-          const query = encodeURIComponent(line);
-          window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
-        });
-        ul.appendChild(li);
-      });
-
-      columnDiv.appendChild(ul);
-      container.appendChild(columnDiv);
-
-      // scroll highlight zentrieren
-      const highlightEl = ul.children[highlightIndex];
-      const containerHeight = columnDiv.clientHeight;
-      const highlightOffset = highlightEl.offsetTop + highlightEl.offsetHeight / 2;
-      columnDiv.scrollTop = highlightOffset - containerHeight / 2;
-    });
-  } else {
-    // ===== Solo Spalte Ansicht =====
-    let linesToShow = [];
-
-    if (selectedList === "all") {
-      // alle kombiniert
-      allListsData.forEach(lines => linesToShow = linesToShow.concat(lines));
-    } else {
-      // nur eine Liste
-      linesToShow = [...allListsData[parseInt(selectedList)]];
+    // ==================== Hilfsfunktionen ====================
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
     }
 
-    const shuffled = shuffle(linesToShow);
-    const highlightIndex = Math.floor(Math.random() * shuffled.length);
+    // ==================== Zustand speichern für Undo ====================
+    function saveState(renderedState = null) {
+      if (!renderedState) {
+        const container = document.getElementById('lists');
+        const columns = Array.from(container.querySelectorAll('.list-column'));
 
-    const columnDiv = document.createElement('div');
-    columnDiv.className = 'list-column';
-    const ul = document.createElement('ul');
+        let linesToShow = [];
+        let highlightIndexes = [];
 
-    shuffled.forEach((line, index) => {
-      const li = document.createElement('li');
-      li.textContent = line;
-      if (index === highlightIndex) li.classList.add('highlight');
-      li.addEventListener('click', () => {
-        const query = encodeURIComponent(line);
-        window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
-      });
-      ul.appendChild(li);
+        columns.forEach(col => {
+          const lis = Array.from(col.querySelectorAll('li'));
+          linesToShow.push(lis.map(li => li.textContent));
+          highlightIndexes.push(lis.findIndex(li => li.classList.contains('highlight')));
+        });
+
+        if (combinedMode) {
+          linesToShow = linesToShow.flat();
+          highlightIndexes = [highlightIndexes[0]]; // solo Spalte hat nur eine
+        }
+
+        renderedState = {
+          combinedMode,
+          selectedList,
+          linesToShow,
+          highlightIndexes,
+          imageSrc: document.getElementById('shuffledImage').src
+        };
+      }
+
+      history.push(renderedState);
+    }
+
+    // ==================== Listen rendern ====================
+    function renderLists(linesData = null, highlightIndexes = null) {
+      const container = document.getElementById('lists');
+      container.innerHTML = '';
+      container.className = combinedMode ? 'lists-container combined' : 'lists-container seven-columns';
+
+      if (!combinedMode) {
+        const listsToRender = linesData || allListsData.map(arr => shuffle([...arr]));
+        const highlights = highlightIndexes || listsToRender.map(list => Math.floor(Math.random() * list.length));
+
+        listsToRender.forEach((lines, colIndex) => {
+          const columnDiv = document.createElement('div');
+          columnDiv.className = 'list-column';
+          const ul = document.createElement('ul');
+
+          lines.forEach((line, index) => {
+            const li = document.createElement('li');
+            li.textContent = line;
+            if (index === highlights[colIndex]) li.classList.add('highlight');
+            li.addEventListener('click', () => {
+              const query = encodeURIComponent(line);
+              window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
+            });
+            ul.appendChild(li);
+          });
+
+          columnDiv.appendChild(ul);
+          container.appendChild(columnDiv);
+
+          const highlightEl = ul.children[highlights[colIndex]];
+          const containerHeight = columnDiv.clientHeight;
+          const highlightOffset = highlightEl.offsetTop + highlightEl.offsetHeight / 2;
+          columnDiv.scrollTop = highlightOffset - containerHeight / 2;
+        });
+      } else {
+        let linesToShow;
+        if (linesData) {
+          linesToShow = linesData;
+        } else if (selectedList === "all") {
+          linesToShow = allListsData.flat();
+          linesToShow = shuffle(linesToShow);
+        } else {
+          linesToShow = shuffle([...allListsData[parseInt(selectedList)]]);
+        }
+
+        const highlightIndex = highlightIndexes ? highlightIndexes[0] : Math.floor(Math.random() * linesToShow.length);
+
+        const columnDiv = document.createElement('div');
+        columnDiv.className = 'list-column';
+        const ul = document.createElement('ul');
+
+        linesToShow.forEach((line, index) => {
+          const li = document.createElement('li');
+          li.textContent = line;
+          if (index === highlightIndex) li.classList.add('highlight');
+          li.addEventListener('click', () => {
+            const query = encodeURIComponent(line);
+            window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
+          });
+          ul.appendChild(li);
+        });
+
+        columnDiv.appendChild(ul);
+        container.appendChild(columnDiv);
+
+        const highlightEl = ul.children[highlightIndex];
+        const containerHeight = columnDiv.clientHeight;
+        const highlightOffset = highlightEl.offsetTop + highlightEl.offsetHeight / 2;
+        columnDiv.scrollTop = highlightOffset - containerHeight / 2;
+      }
+    }
+
+    // ==================== Bilder ====================
+    async function loadPictures() {
+      try {
+        const response = await fetch(pictureFolder + 'images.json');
+        pictureFiles = await response.json();
+      } catch (err) {
+        console.error("Fehler beim Laden der Bilder-JSON:", err);
+      }
+    }
+
+    function shuffleImage() {
+      if (pictureFiles.length === 0) return;
+      const idx = Math.floor(Math.random() * pictureFiles.length);
+      document.getElementById('shuffledImage').src = pictureFolder + pictureFiles[idx] + '?t=' + new Date().getTime();
+    }
+
+    // ==================== Favicon automatisch shuffeln ====================
+    function shuffleFavicon() {
+      if (pictureFiles.length === 0) return;
+      const idx = Math.floor(Math.random() * pictureFiles.length);
+      const favicon = document.getElementById('favicon');
+      favicon.href = pictureFolder + pictureFiles[idx] + '?t=' + new Date().getTime(); // Cache-Busting
+    }
+
+    // ==================== Listen laden ====================
+    async function loadLists() {
+      allListsData = [];
+      for (let path of listPaths) {
+        const response = await fetch(path);
+        const text = await response.text();
+        const lines = text
+          .split('\n')
+          .filter(line => line.trim() !== '')
+          .map(line => line.replace(/^\d+\.\s*/, ''));
+        allListsData.push(lines);
+      }
+      renderLists();
+    }
+
+    // ==================== Undo ====================
+    function undo() {
+      if (history.length === 0) return;
+
+      const lastState = history.pop();
+      combinedMode = lastState.combinedMode;
+      selectedList = lastState.selectedList;
+
+      renderLists(lastState.linesToShow, lastState.highlightIndexes);
+      document.getElementById('shuffledImage').src = lastState.imageSrc;
+    }
+
+    // ==================== Initialisierung ====================
+    async function init() {
+      await loadPictures();
+      await loadLists();
+      shuffleImage();
+      shuffleFavicon();                // einmal initial setzen
+      setInterval(shuffleFavicon, 2000); // alle 2 Sekunden automatisch ändern
+    }
+
+    // ==================== Event Listener ====================
+    document.getElementById('shuffleLists').addEventListener('click', () => {
+      saveState();
+      renderLists();
+      shuffleImage();
     });
 
-    columnDiv.appendChild(ul);
-    container.appendChild(columnDiv);
+    document.getElementById('toggleView').addEventListener('click', () => {
+      combinedMode = !combinedMode;
+      renderLists();
+    });
 
-    // scroll highlight zentrieren
-    const highlightEl = ul.children[highlightIndex];
-    const containerHeight = columnDiv.clientHeight;
-    const highlightOffset = highlightEl.offsetTop + highlightEl.offsetHeight / 2;
-    columnDiv.scrollTop = highlightOffset - containerHeight / 2;
-  }
-}
+    document.getElementById('listSelect').addEventListener('change', e => {
+      selectedList = e.target.value;
+      renderLists();
+    });
 
-async function loadLists() {
-  allListsData = [];
-  for (let path of listPaths) {
-    const response = await fetch(path);
-    const text = await response.text();
-    const lines = text
-      .split('\n')
-      .filter(line => line.trim() !== '')
-      .map(line => line.replace(/^\d+\.\s*/, '')); // Nummern entfernen
-    allListsData.push(lines);
-  }
-  renderLists();
-}
+    document.getElementById('undoButton').addEventListener('click', undo);
 
-// Event Listener
-document.getElementById('toggleView').addEventListener('click', () => {
-  combinedMode = !combinedMode;
-  renderLists();
-});
+    // ==================== Seite initial laden ====================
+    init();
 
-document.getElementById('shuffleLists').addEventListener('click', () => {
-  renderLists();
-});
-
-document.getElementById('listSelect').addEventListener('change', e => {
-  selectedList = e.target.value;
-  renderLists();
-});
-
-// Initial laden
-loadLists();
-</script>
+  </script>
 
 
 </body>
